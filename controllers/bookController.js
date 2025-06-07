@@ -2,9 +2,27 @@ const Book = require('../models/Book');
 const Review = require('../models/Review');
 
 exports.addBook = async (req, res) => {
-  const book = new Book(req.body);
-  await book.save();
-  res.status(201).json(book);
+  try {
+    const { title, author, genre } = req.body;
+
+    // Check for duplicates (case-insensitive)
+    const existingBook = await Book.findOne({
+      title: { $regex: new RegExp(`^${title}$`, 'i') },
+      author: { $regex: new RegExp(`^${author}$`, 'i') },
+      genre: { $regex: new RegExp(`^${genre}$`, 'i') }
+    });
+
+    if (existingBook) {
+      return res.status(400).json({ message: 'Book with same title, author, and genre already exists.' });
+    }
+
+    const book = new Book({ title, author, genre });
+    await book.save();
+
+    res.status(201).json(book);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 exports.getBooks = async (req, res) => {
