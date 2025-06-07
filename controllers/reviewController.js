@@ -23,11 +23,21 @@ exports.updateReview = async (req, res) => {
 };
 
 exports.deleteReview = async (req, res) => {
-  const review = await Review.findById(req.params.id);
-  if (!review || !review.user.equals(req.user._id))
-    return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const review = await Review.findById(req.params.id);
 
-  await Book.findByIdAndUpdate(review.book, { $pull: { reviews: review._id } });
-  await review.remove();
-  res.json({ message: 'Review deleted' });
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    if (review.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    await review.deleteOne();
+
+    res.json({ message: 'Review deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
